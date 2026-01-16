@@ -5,6 +5,8 @@
 */gen/
 *.swp
 /config.xml
+*cache*
+*.blob
 
 # Python-specific
 *.?env*

@@ -68,10 +68,10 @@ def prepare_super_res():
 
 
 def prepare_whisper():
-    whisper_version="whisper-base"
+    whisper_version="whisper-small"
     if not Path(model_dir+"/"+whisper_version).exists():
        import huggingface_hub as hf_hub
-       model_id = "OpenVINO/whisper-base-fp16-ov"
+       model_id = "OpenVINO/whisper-small-fp16-ov"
        model_path = model_dir + "/" + whisper_version
 
        hf_hub.snapshot_download(model_id, local_dir=model_path)

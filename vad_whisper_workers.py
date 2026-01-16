@@ -130,17 +130,28 @@ class WhisperWorker(AsyncWorker):
         self.result_queue = multiprocessing.Queue()
         self.device = device
         self.ui_update_queue = ui_update_queue
+
+    def get_config_for_cache(self):
+        config_cache = dict()
+        config_cache["CACHE_DIR"] = ".npucache_whisper"
+        return config_cache
         
     def _work_loop(self):
         import numpy as np
         import openvino_genai
         
-        print("Creating whisper pipeline to run on device=", self.device)    
+        print("Creating whisper pipeline to run on", self.device)    
         worker_log = f"<b>ASR: Loading Whisper to <span style=\"color: green;\">{self.device}</span>...</b><br>"
-        self.ui_update_queue.put(("worker_log", worker_log,))
-        pipe = openvino_genai.WhisperPipeline("models/whisper-base", self.device)
+        self.ui_update_queue.put(("worker_log", worker_log,))        
+        ov_config = dict()
+        if self.device == "NPU" or "GPU" in self.device: # need to handle cases like "GPU", "GPU.0" and "GPU.1"
+            # Cache compiled models on disk for GPU and NPU to save time on the
+            # next run. It's not beneficial for CPU.
+            ov_config = self.get_config_for_cache()        
+
+        pipe = openvino_genai.WhisperPipeline("models/whisper-small", self.device, **ov_config)
         whisper_config = openvino_genai.WhisperGenerationConfig(
-            "models/whisper-base" + "/generation_config.json"
+            "models/whisper-small" + "/generation_config.json"
         )
         whisper_config.max_new_tokens = 256  # increase this based on your speech length
         # 'task' and 'language' parameters are supported for multilingual models only

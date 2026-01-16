@@ -385,9 +385,9 @@ def main():
     core = ov.Core()
 
     llm_device = "NPU" if "NPU" in core.available_devices else "GPU"
-    sd_device = "GPU" if "GPU" in core.available_devices else "CPU"
+    sd_device = ["NPU", "NPU", "GPU"] if "NPU" in core.available_devices and "GPU" in core.available_devices else "CPU"
     whisper_device = 'NPU' if "NPU" in core.available_devices else "CPU"
-    super_res_device = "GPU" if "GPU" in core.available_devices else "CPU"
+    super_res_device = "NPU" if "NPU" in core.available_devices else "CPU"
 
     print("Just a minute... doing some application setup...")
 

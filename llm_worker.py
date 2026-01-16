@@ -23,9 +23,9 @@ class LLMWorker(AsyncWorker):
     def _work_loop(self):
         import openvino_genai as ov_genai
 
-        print("Creating an llm pipeline to run on ", self.llm_device)
+        print("Creating an llm pipeline to run on", self.llm_device)
         
-        worker_log = f"<b>LLM: Loading llama-3.1-8b-instruct to <span style=\"color: green;\">{self.llm_device}</span>...</b><br>"
+        worker_log = f"<b>LLM: Loading Llama-3.1-8b-instruct to <span style=\"color: green;\">{self.llm_device}</span>...</b><br>"
         self.ui_update_queue.put(("worker_log", worker_log,))
         #llm_model_path = r"./models/llama-3.1-8b-instruct/INT4_compressed_weights"
         #llm_model_path = r"./models/llama-3.2-3b-instruct/INT4_compressed_weights"
@@ -34,7 +34,7 @@ class LLMWorker(AsyncWorker):
         llm_device = self.llm_device
 
         if llm_device == 'NPU':
-            pipeline_config = {"MAX_PROMPT_LEN": 1536, "NPUW_CACHE_DIR": ".npucache", "GENERATE_HINT": "BEST_PERF"}
+            pipeline_config = {"MAX_PROMPT_LEN": 1536, "NPUW_CACHE_DIR": ".npucache_llm", "GENERATE_HINT": "BEST_PERF"}
             llm_pipe = ov_genai.LLMPipeline(llm_model_path, llm_device, pipeline_config)
         else:
             llm_pipe = ov_genai.LLMPipeline(llm_model_path, llm_device)

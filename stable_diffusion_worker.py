@@ -27,10 +27,33 @@ class StableDiffusionWorker(AsyncWorker):
         super().__init__()
         
         self.result_img_queue = Queue()
-        self.sd_device = sd_device
+        sd_device = [sd_device] if not isinstance(sd_device, list) else sd_device
+        if len(sd_device) > 1:
+            assert len(sd_device) == 3, "3 devices must be specified for 3 stable diffusion sub-models"
+            # assign different models to different devices
+            self.sd_device_encoder = sd_device[0]
+            self.sd_device_denoiser = sd_device[1]
+            self.sd_device_vae = sd_device[2]
+        else: # assign all models to same device
+            self.sd_device_encoder = sd_device[0]
+            self.sd_device_denoiser = sd_device[0]
+            self.sd_device_vae = sd_device[0]
+
+        if "NPU" or "GPU" in sd_device:
+            self.create_cache = True
+        else:
+            self.create_cache = False
         self.sd_prompt_queue = sd_prompt_queue
         self.super_res_device = super_res_device
         self.ui_update_queue = ui_update_queue
+
+    def get_config_for_cache(self):
+        config_cache = dict()
+        config_cache["DEVICE_PROPERTIES"] = {               
+                "NPU": {"CACHE_DIR": ".npucache_sd"},
+                "GPU": {"CACHE_DIR": ".gpucache_sd"}                
+            }
+        return config_cache
         
     def _work_loop(self):
         import openvino_genai as ov_genai
@@ -38,20 +61,32 @@ class StableDiffusionWorker(AsyncWorker):
         width = 768
         height = 432
         
-        print("Creating a stable diffusion pipeline to run on ", self.sd_device)
-        worker_log = f"<b>SD: Loading Stable Diffusion to <span style=\"color: green;\">{self.sd_device}</span>...</b><br>"
+        print(f"Creating a stable diffusion pipeline to run on {(self.sd_device_encoder, self.sd_device_denoiser, self.sd_device_vae)}")
+        worker_log = f"<b>SD: Loading Stable Diffusion to <span style=\"color: green;\">{(self.sd_device_encoder, self.sd_device_denoiser, self.sd_device_vae)}</span>...</b><br>"
         self.ui_update_queue.put(("worker_log", worker_log,))
         
+        ov_config = dict()
+        if self.create_cache:
+            # Cache compiled models on disk for GPU and NPU to save time on the
+            # next run. It's not beneficial for CPU.
+            ov_config = self.get_config_for_cache()        
 
         sd_pipe = ov_genai.Text2ImagePipeline(r"models/sdxl-turbo/FP16")
         sd_pipe.reshape(1, height, width, 0) # sdxl uses guidance_scale=0
         num_inference_steps = 3
 
-        sd_pipe.compile(self.sd_device)
+        sd_pipe.compile(text_encode_device=self.sd_device_encoder, 
+                        denoise_device=self.sd_device_denoiser, 
+                        vae_device=self.sd_device_vae, config=ov_config)
         
-        worker_log = f"<b>SD: Loading Stable Diffusion to <span style=\"color: green;\">{self.sd_device}</span>... [DONE]</b><br>"
+        worker_log = f"<b>SD: Loading Stable Diffusion Text Encoder to <span style=\"color: green;\">{self.sd_device_encoder}</span>... [DONE]</b><br>"
         self.ui_update_queue.put(("worker_log", worker_log,))
-        
+        worker_log = f"<b>SD: Loading Stable Diffusion Denoiser to <span style=\"color: green;\">{self.sd_device_denoiser}</span>... [DONE]</b><br>"
+        self.ui_update_queue.put(("worker_log", worker_log,))
+        worker_log = f"<b>SD: Loading Stable Diffusion VAE Decoder to <span style=\"color: green;\">{self.sd_device_vae}</span>... [DONE]</b><br>"
+        self.ui_update_queue.put(("worker_log", worker_log,))
+        print("done creating stable diffusion pipeline")
+
         print("Initializing Super Res Model to run on ", self.super_res_device)
         worker_log = f"<b>SR: Loading Super Resolution to <span style=\"color: green;\">{self.super_res_device}</span>...</b><br>"
         self.ui_update_queue.put(("worker_log", worker_log,))
@@ -63,6 +98,7 @@ class StableDiffusionWorker(AsyncWorker):
         worker_log = f"<b>SR: Loading Super Resolution to <span style=\"color: green;\">{self.super_res_device}</span>... [DONE]</b><br>"
         self.ui_update_queue.put(("worker_log", worker_log,))
         self.ui_update_queue.put(("ready", 1,))
+        print("super resolution model loaded")
 
         while self._running.value:
             try:
