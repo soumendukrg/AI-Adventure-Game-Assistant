@@ -2,7 +2,7 @@ import openvino_genai as ov_genai
 import json
 
 LLM_ORCHESTRATOR_SYSTEM_MESSAGE_SHORT="""
-You are an AI assistant tasked with identifying scenes, locations, or moments in a tabletop adventure game that are relevant and worth illustrating.
+You are an AI assistant tasked with identifying scenes, locations, or moments in a tabletop adventure game that are relevant and worth illustrating. The theme is 
 """
 
 def extract_json_content(s):
@@ -36,7 +36,7 @@ class LLMOrchestrator:
         self.current_illustration_focus = None
 
     def create_system_message(self, theme):
-        return LLM_ORCHESTRATOR_SYSTEM_MESSAGE_SHORT
+        return LLM_ORCHESTRATOR_SYSTEM_MESSAGE_SHORT + theme
 
     def llm_streamer(self, subword):
         print(subword, end='', flush=True)
