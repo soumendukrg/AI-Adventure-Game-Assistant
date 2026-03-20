@@ -3,7 +3,7 @@
 --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
 
 #openvino GenAI (which also installs openvino packages)
-openvino-genai==2025.4.0.0      
+openvino-genai==2025.4.0.0
 openvino-tokenizers==2025.4.0.0
 optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@main
 numpy>=2.2.6; sys_platform == 'darwin'
@@ -19,7 +19,7 @@ nncf
 accelerate
 huggingface_hub
 opencv-python==4.11.0.86
-pillow==11.1.0
+pillow==12.1.1
 librosa # for whisper
 # for VAD
 sherpa-onnx
